@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Handler httpGetHandler;
 
-    private ArrayList<Theater> cinemaArray = new ArrayList<Theater>();
+    private ArrayList<Theater> cinemaArray = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (savedInstanceState != null) {
             mapViewBundle = savedInstanceState.getBundle(MAPVIEW_BUNDLE_KEY);
         }
-        mMapView = (MapView) findViewById(R.id.map);
+        mMapView = findViewById(R.id.map);
         mMapView.onCreate(mapViewBundle);
 
         mMapView.getMapAsync(this);
@@ -147,9 +147,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private boolean checkMapServices() {
         if (isServicesOK()) {
-            if (isMapsEnabled()) {
-                return true;
-            }
+            return isMapsEnabled();
         }
         return false;
     }
@@ -218,16 +216,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[],
+                                           @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         mLocationPermissionGranted = false;
-        switch (requestCode) {
-            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    mLocationPermissionGranted = true;
-                }
+        if(requestCode == PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION) {
+            // If request is cancelled, the result arrays are empty.
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                mLocationPermissionGranted = true;
             }
         }
     }
@@ -236,13 +232,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         Log.d(TAG, "onActivityResult: called.");
-        switch (requestCode) {
-            case PERMISSIONS_REQUEST_ENABLE_GPS: {
-                if (mLocationPermissionGranted) {
-                    showQuickInstructions();
-                } else {
-                    getLocationPermission();
-                }
+        if(requestCode == PERMISSIONS_REQUEST_ENABLE_GPS) {
+            if (mLocationPermissionGranted) {
+                showQuickInstructions();
+            } else {
+                getLocationPermission();
             }
         }
     }
@@ -288,15 +282,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(GoogleMap map) {
-//        map.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    Activity#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for Activity#requestPermissions for more details.
             return;
         }
         map.setMyLocationEnabled(true);
@@ -365,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Button detailBtn = findViewById(R.id.detailBtn);
                             detailBtn.setEnabled(true);
 
-                            Toast.makeText(MainActivity.this, "Tap marker(s) or 'SHOW DETAILS' button for more info.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MainActivity.this, "Tap marker(s) or 'SHOW DETAILS' button for more info.", Toast.LENGTH_SHORT).show();
 
                         }
                     }
@@ -395,7 +381,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     arrJSON.getJSONObject(i).getDouble("longitude"));
 
             cinemaArray.add(new Theater(name, address, url, coords));
-            if(cinemaArray.size() >= 5) {
+            // Exit loop if theater distance is more than 25km.
+            if(arrJSON.getJSONObject(i).getDouble("distance") > 25000) {
                 break;
             }
         }
@@ -404,14 +391,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void showDetails(View view) {
         Intent intent = new Intent(this, TheaterActivity.class);
 
-//        Bundle extras = new Bundle();
-//
-//        for(int i = 0; i < cinemaArray.size(); i++) {
-//            extras.putSerializable("theater"+ i, cinemaArray.get(i));
-//        }
-//        extras.putInt("cinema_count", cinemaArray.size());
-//
-//        intent.putExtras(extras);
+        // Check if there's a need to pass extra data.
+        if(!(cinemaArray.isEmpty())) {
+            ArrayList<String> extras = new ArrayList<>();
+            for (Theater t : cinemaArray) {
+                extras.add(t.name);
+                extras.add(t.address);
+                extras.add(t.url);
+                extras.add(t.coords.toString());
+            }
+            intent.putStringArrayListExtra("theaters_in_string", extras);
+        }
+
         startActivity(intent);
         Log.d(TAG, "Started intent.");
     }

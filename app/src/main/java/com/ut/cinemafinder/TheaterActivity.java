@@ -2,6 +2,8 @@ package com.ut.cinemafinder;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -10,10 +12,13 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import java.util.ArrayList;
 
 public class TheaterActivity extends AppCompatActivity {
     private static final String TAG = "TheaterActivity";
+    ArrayList<Theater> theaters = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,14 +26,18 @@ public class TheaterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_theater);
 
-        ArrayList<Theater> theaters = new ArrayList<Theater>();
-//        //int count = getIntent().getIntExtra("cinema_count", 0);
-//        Bundle bd = getIntent().getExtras();
-//        int count = bd.getInt("cinema_count");
-//        for (int i = 0; i < count; i++) {
-//            //theaters.add((Theater)getIntent().getSerializableExtra("theater"+i));
-//            theaters.add((Theater)bd.getSerializable("theater"+i));
-//        }
+        ArrayList<String> theaters_str = getIntent().getStringArrayListExtra("theaters_in_string");
+        if(theaters_str == null) {
+            return;
+        }
+        for(int i = 0; i < theaters_str.size(); i = i + 4) {
+            String[] latlng = theaters_str.get(i+3).split(",");
+            String lat_str = latlng[0].substring(latlng[0].indexOf('(')+1);
+            String long_str = latlng[1].substring(0, latlng[1].indexOf(')'));
+            LatLng coords = new LatLng(Double.parseDouble(lat_str), Double.parseDouble(long_str));
+            theaters.add(new Theater(theaters_str.get(i), theaters_str.get(i+1), theaters_str.get(i+2), coords));
+        }
+
         CustomAdapter customListAdapter = new CustomAdapter(this, theaters);
         ListView customListView = findViewById(R.id.custom_list_id);
         customListView.setAdapter(customListAdapter);
@@ -37,12 +46,9 @@ public class TheaterActivity extends AppCompatActivity {
                 new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        if(view.getTag() == "img") {
-                            Toast.makeText(TheaterActivity.this, "Image was clicked!", Toast.LENGTH_LONG).show();
-                        }
-                        else {
-                            Toast.makeText(TheaterActivity.this, "Text was clicked!", Toast.LENGTH_LONG).show();
-                        }
+                        Toast.makeText(TheaterActivity.this, "Sending link to external browser...", Toast.LENGTH_LONG).show();
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(theaters.get(position).url));
+                        startActivity(browserIntent);
                     }
                 }
         );

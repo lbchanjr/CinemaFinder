@@ -30,7 +30,7 @@ class CustomAdapter extends ArrayAdapter<Theater> {
         txt.setText(t.name);
 
         TextView txt2 = customView.findViewById(R.id.subtitle_id);
-        txt2.setText(t.address+"\nLatitude: "+t.coords.latitude+", Longitude: "+t.coords.longitude);
+        txt2.setText(t.address/*+"\nLat/Lng("+t.coords.latitude+", "+t.coords.longitude+")"*/);
 
         return customView;
     }
