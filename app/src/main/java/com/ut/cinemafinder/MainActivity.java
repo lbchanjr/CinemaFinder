@@ -14,8 +14,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -62,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private FusedLocationProviderClient mFusedLocationClient;
 
-    private GoogleMap mGoogleMap;
+    private GoogleMap mGoogleMap = null;
     private LatLngBounds mMapBoundary;
     private Location currentLocation;
 
@@ -76,13 +78,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
-        initMap(savedInstanceState);
-
         // Initialize http asynch handler.
         httpGetHandler = new Handler();
 
+        initMap(savedInstanceState);
+
+        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        }
+        else {
+            getLocationPermission();
+        }
     }
 
     private void setCameraView() {
@@ -100,26 +109,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void getLastKnownLocation() {
         Log.d(TAG, "getLastKnownLocation: called.");
 
+
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
-        mFusedLocationClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
-            @Override
-            public void onComplete(@NonNull Task<Location> task) {
-                if (task.isSuccessful()) {
-                    currentLocation = task.getResult();
+        // Make sure that global location and map services are also enabled.
+        if(checkMapServices()) {
 
-                    // Do whatever needs to be done upon determining last known location...
-                    setCameraView();
-                    Log.d(TAG, "onComplete: latitude: " + currentLocation.getLatitude());
-                    Log.d(TAG, "onComplete: longitude: " + currentLocation.getLongitude());
+            mFusedLocationClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
+                @Override
+                public void onComplete(@NonNull Task<Location> task) {
+                    if (task.isSuccessful()) {
+                        currentLocation = task.getResult();
+
+                        // Do whatever needs to be done upon determining last known location...
+                        setCameraView();
+                        Log.d(TAG, "onComplete: latitude: " + currentLocation.getLatitude());
+                        Log.d(TAG, "onComplete: longitude: " + currentLocation.getLongitude());
+
+                        // Update API call.
+                        getReadCineplexTheaterData();
+                    }
 
                 }
-
-            }
-        });
-
+            });
+        }
 
     }
 
@@ -139,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void showQuickInstructions() {
 
-        Toast.makeText(this, "Click 'FIND THEATERS' button to start.", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Click 'FIND THEATERS' button to start.", Toast.LENGTH_SHORT).show();
 
         //getLastKnownLocation();
     }
@@ -156,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
                 .setCancelable(false)
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
                         Intent enableGpsIntent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                         startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS);
@@ -166,13 +181,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         alert.show();
     }
 
-    public boolean isMapsEnabled() {
-        final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+    public static Boolean isLocationEnabled(Context context)
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            // This is new method provided in API 28
+            LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+            return lm.isLocationEnabled();
+        } else {
+            // This is Deprecated in API 28
+            int mode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE,
+                    Settings.Secure.LOCATION_MODE_OFF);
+            return  (mode != Settings.Secure.LOCATION_MODE_OFF);
 
-        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        }
+    }
+
+    public boolean isMapsEnabled() {
+        //final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+        //if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        if(!isLocationEnabled(this)) {
             buildAlertMessageNoGps();
             return false;
         }
+
         return true;
     }
 
@@ -224,6 +256,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (grantResults.length > 0
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 mLocationPermissionGranted = true;
+
+                // Initialize map and the fused location provided.
+                mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+                // Ensure that savedInstanceState is set to null.
+                initMap(null);
             }
         }
     }
@@ -294,14 +331,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onPause() {
-        mMapView.onPause();
         super.onPause();
+        mMapView.onPause();
     }
 
     @Override
     public void onDestroy() {
-        mMapView.onDestroy();
         super.onDestroy();
+        mMapView.onDestroy();
     }
 
     @Override
@@ -316,7 +353,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void findButtonClicked(View v) {
-        getReadCineplexTheaterData();
+        if(mGoogleMap != null) {
+            if (checkMapServices()) {
+                if (mLocationPermissionGranted) {
+                    getLastKnownLocation();
+                }
+                else {
+                    Toast.makeText(this, "Check your app or phone's location services setting and try again.", Toast.LENGTH_LONG).show();
+                    getLocationPermission();
+                }
+            }
+        }
+        else {
+            Toast.makeText(this, "Check your app or phone's location services setting and try again.", Toast.LENGTH_LONG).show();
+            getLocationPermission();
+        }
     }
 
     public void getReadCineplexTheaterData() {
@@ -341,12 +392,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 // Place UI-related updates here.
                 httpGetHandler.post( new Runnable() {
                     public void run() {
+                        Log.d(TAG, "Adding movie theater markers to map.");
                         for (Theater t : cinemaArray) {
-                            // Place UI-related updates here.
-                            mGoogleMap.addMarker(new MarkerOptions().position(t.coords).title(t.name));
+                            if(mGoogleMap != null) {
+                                // Place UI-related updates here.
+                                mGoogleMap.addMarker(new MarkerOptions().position(t.coords).title(t.name));
+                            }
                         }
 
-                        if(!cinemaArray.isEmpty()) {
+                        if(!cinemaArray.isEmpty() && mGoogleMap != null) {
+                            Log.d(TAG, "Enabling 'SHOW DETAIL' button.");
                             Button detailBtn = findViewById(R.id.detailBtn);
                             detailBtn.setEnabled(true);
 
@@ -366,7 +421,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void parseTheaterJSON(String strJSON) throws JSONException {
         JSONObject dataJSON = new JSONObject(strJSON);
-
+        Log.d(TAG, "Parsing JSON data from remote site.");
         cinemaArray.clear();
         JSONArray arrJSON = dataJSON.getJSONArray("data");
         for (int i = 0; i < arrJSON.length(); i++) {
@@ -385,6 +440,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             }
         }
+        Log.d(TAG, "Parsing JSON data complete.");
     }
 
     public void showDetails(View view) {
@@ -406,4 +462,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.d(TAG, "Started intent.");
     }
 
+//    private void restartApp() {
+//        Intent mStartActivity = new Intent(MainActivity.this, MainActivity.class);
+//        int mPendingIntentId = 123456;
+//        PendingIntent mPendingIntent = PendingIntent.getActivity(MainActivity.this, mPendingIntentId, mStartActivity, PendingIntent.FLAG_CANCEL_CURRENT);
+//        AlarmManager mgr = (AlarmManager)MainActivity.this.getSystemService(Context.ALARM_SERVICE);
+//        mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100, mPendingIntent);
+//        System.exit(0);
+//    }
 }
