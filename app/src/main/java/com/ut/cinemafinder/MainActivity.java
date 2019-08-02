@@ -343,7 +343,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void run() {
                         for (Theater t : cinemaArray) {
                             // Place UI-related updates here.
-                            //Toast.makeText(MainActivity.this, urlData.toString(), Toast.LENGTH_LONG).show();
                             mGoogleMap.addMarker(new MarkerOptions().position(t.coords).title(t.name));
                         }
 
