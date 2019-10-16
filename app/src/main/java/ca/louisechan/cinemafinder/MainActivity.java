@@ -1,9 +1,4 @@
-package com.ut.cinemafinder;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+package ca.louisechan.cinemafinder;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -23,6 +18,11 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -36,6 +36,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import ca.louisechan.cinemafinder.R;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -50,10 +51,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-import static com.ut.cinemafinder.Constants.ERROR_DIALOG_REQUEST;
-import static com.ut.cinemafinder.Constants.MAP_REGION_SIZE;
-import static com.ut.cinemafinder.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
-import static com.ut.cinemafinder.Constants.PERMISSIONS_REQUEST_ENABLE_GPS;
+import static ca.louisechan.cinemafinder.Constants.ERROR_DIALOG_REQUEST;
+import static ca.louisechan.cinemafinder.Constants.MAP_REGION_SIZE;
+import static ca.louisechan.cinemafinder.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
+import static ca.louisechan.cinemafinder.Constants.PERMISSIONS_REQUEST_ENABLE_GPS;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private static final String TAG = "MainActivity";
@@ -84,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         initMap(savedInstanceState);
 
         if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
-                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -173,7 +174,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .setCancelable(false)
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                        Intent enableGpsIntent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        Intent enableGpsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                         startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS);
                     }
                 });
@@ -215,13 +216,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
          * onRequestPermissionsResult.
          */
         if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
-                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mLocationPermissionGranted = true;
             showQuickInstructions();
         } else {
             ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
         }
     }

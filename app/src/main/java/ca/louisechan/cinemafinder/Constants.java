@@ -1,4 +1,4 @@
-package com.ut.cinemafinder;
+package ca.louisechan.cinemafinder;
 
 public class Constants {
 
