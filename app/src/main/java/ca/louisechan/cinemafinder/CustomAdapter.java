@@ -1,4 +1,4 @@
-package com.ut.cinemafinder;
+package ca.louisechan.cinemafinder;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -6,6 +6,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
+
+import ca.louisechan.cinemafinder.R;
 
 import java.util.ArrayList;
 

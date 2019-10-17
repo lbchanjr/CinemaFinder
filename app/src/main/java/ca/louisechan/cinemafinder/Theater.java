@@ -1,4 +1,4 @@
-package com.ut.cinemafinder;
+package ca.louisechan.cinemafinder;
 
 import com.google.android.gms.maps.model.LatLng;
 
